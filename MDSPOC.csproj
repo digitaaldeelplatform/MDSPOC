@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="MdsPoc.Api\**" />
+    <Compile Remove="MdsPoc.Application\**" />
+    <Compile Remove="MdsPoc.Domain\**" />
+    <Compile Remove="MdsPoc.Tests\**" />
+    <Content Remove="MdsPoc.Api\**" />
+    <Content Remove="MdsPoc.Application\**" />
+    <Content Remove="MdsPoc.Domain\**" />
+    <Content Remove="MdsPoc.Tests\**" />
+    <EmbeddedResource Remove="MdsPoc.Api\**" />
+    <EmbeddedResource Remove="MdsPoc.Application\**" />
+    <EmbeddedResource Remove="MdsPoc.Domain\**" />
+    <EmbeddedResource Remove="MdsPoc.Tests\**" />
+    <None Remove="MdsPoc.Api\**" />
+    <None Remove="MdsPoc.Application\**" />
+    <None Remove="MdsPoc.Domain\**" />
+    <None Remove="MdsPoc.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="MdsPoc.Application\MdsPoc.Application.csproj" />
+    <ProjectReference Include="MdsPoc.Domain\MdsPoc.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

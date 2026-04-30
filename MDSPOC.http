@@ -1,0 +1,6 @@
+@MDSPOC_HostAddress = http://localhost:5153
+
+GET {{MDSPOC_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
