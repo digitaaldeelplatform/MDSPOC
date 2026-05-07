@@ -8,6 +8,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IDecisionEvaluationService, DecisionEvaluationService>();
+builder.Services.AddScoped<CatalogService>();
 
 var app = builder.Build();
 
