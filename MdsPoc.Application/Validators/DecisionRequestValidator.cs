@@ -5,6 +5,18 @@ using System.Text;
 using System.Threading.Tasks;
 using MdsPoc.Application.Dtos;
 
+// Controleert of de binnengekomen request geldig is
+// voordat de evaluatie start.
+//
+// Deze validator controleert:
+// - of voldoende alternatieven aanwezig zijn;
+// - of minimaal één criterium bestaat;
+// - of elk criterium een gewicht heeft;
+// - of alle gewichten samen optellen tot 1.0.
+//
+// Bij fouten wordt de evaluatie gestopt
+// en worden validatiemeldingen teruggegeven aan de API.
+
 namespace MdsPoc.Application.Validators
 {
     public static class DecisionRequestValidator

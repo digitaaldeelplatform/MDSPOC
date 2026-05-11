@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace MdsPoc.Domain.Entities
 {
+    /
     public class CriterionScore
     {
         public string AlternativeName { get; set; } = string.Empty;

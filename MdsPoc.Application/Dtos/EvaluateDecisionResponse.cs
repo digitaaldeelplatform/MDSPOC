@@ -5,6 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using MdsPoc.Domain.Entities;
 
+// Bevat de resultaten van de evaluatie,
+// inclusief de geselecteerde beste optie,
+
 namespace MdsPoc.Application.Dtos
 {
     public class EvaluateDecisionResponse

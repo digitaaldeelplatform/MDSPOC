@@ -5,6 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 using MdsPoc.Domain.Entities;
 
+// Ontvangt JSON van frontend met alle benodigde informatie
+// om een beslissing te evalueren.
+// Wordt gevalideerd door DecisionRequestValidator
+// voordat de evaluatie plaatsvindt.
+
 namespace MdsPoc.Application.Dtos
 {
     public class EvaluateDecisionRequest

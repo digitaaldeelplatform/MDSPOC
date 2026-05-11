@@ -1,9 +1,13 @@
-﻿using System;
+﻿using MdsPoc.Application.Dtos;
+using MdsPoc.Application.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MdsPoc.Application.Dtos;
+
+// Interface voor de service die de beslissingsevaluatie uitvoert.
+// Implementatie: DecisionEvaluationService.cs
 
 namespace MdsPoc.Application.Interfaces
 {

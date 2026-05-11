@@ -10,9 +10,14 @@ namespace MdsPoc.Api.Controllers
     [Route("api/[controller]")]
     public class DecisionController : ControllerBase
     {
+        // Service die de daadwerkelijke MDS-evaluatie uitvoert.
         private readonly IDecisionEvaluationService _decisionEvaluationService;
+        
+        // Service die de vaste PoC-catalogus met alternatieven
+        // en criteria beschikbaar maakt.
         private readonly CatalogService _catalogService;
 
+        // Constructor injecteert de benodigde services.
         public DecisionController(
             IDecisionEvaluationService decisionEvaluationService,
             CatalogService catalogService)
@@ -21,6 +26,7 @@ namespace MdsPoc.Api.Controllers
             _catalogService = catalogService;
         }
 
+        // Endpoint om een beslissing te evalueren op basis van een volledig verzoek.
         [HttpPost("evaluate")]
         public IActionResult Evaluate([FromBody] EvaluateDecisionRequest request)
         {
@@ -32,6 +38,9 @@ namespace MdsPoc.Api.Controllers
             return Ok(response);
         }
 
+        // Endpoint voor evaluatie op basis van de vaste catalogus.
+        // De frontend hoeft dan alleen gekozen alternatieven,
+        // criteria, gewichten en aannames mee te geven.
         [HttpPost("evaluate-from-catalog")]
         public IActionResult EvaluateFromCatalog([FromBody] EvaluateFromCatalogRequest request)
         {
@@ -46,6 +55,9 @@ namespace MdsPoc.Api.Controllers
                 .Where(criterion => request.SelectedCriterionNames.Contains(criterion.Name))
                 .ToList();
 
+            // Zet de catalogusselectie om naar een gewone EvaluateDecisionRequest.
+            // Vanaf hier gebruikt het systeem dezelfde evaluatielogica
+            // als bij het handmatige endpoint.
             var evaluateRequest = new EvaluateDecisionRequest
             {
                 Context = request.Context,
@@ -63,10 +75,12 @@ namespace MdsPoc.Api.Controllers
                 Assumptions = request.Assumptions
             };
 
+            // Voeg de baseline scores van de geselecteerde alternatieven toe aan het evaluatieverzoek.
             foreach (var alternative in selectedAlternatives)
             {
                 foreach (var baselineScore in alternative.BaselineScores)
                 {
+                    // Alleen scores toevoegen voor de geselecteerde criteria. De rest wordt genegeerd
                     if (!request.SelectedCriterionNames.Contains(baselineScore.CriterionName))
                         continue;
 
@@ -79,7 +93,7 @@ namespace MdsPoc.Api.Controllers
                     });
                 }
             }
-
+            // Stuurt het samengestelde evaluatieverzoek naar de service die de MDS-evaluatie uitvoert.
             var response = _decisionEvaluationService.Evaluate(evaluateRequest);
 
             if (response.ValidationErrors.Any())
