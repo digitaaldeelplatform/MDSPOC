@@ -1,16 +1,8 @@
-﻿/*
-* CatalogController.cs
- *
- * This file defines the CatalogController class, 
- * which is an API controller responsible for handling HTTP requests 
- * related to the catalog of alternatives and criteria in the MdsPoc 
- * application. It uses the CatalogService to retrieve data and return 
- * it in the response.
- * 
- * Dit maakt de frontend afhankelijk van de backendcatalogus in plaats van 
- * hardcoded frontenddata.
- *
-*/
+﻿// Deze file is onderdeel van een ASP.NET Core Web API project.
+// De CatalogController biedt endpoints om alternatieven en criteria op te halen,
+// die worden gebruikt in de Microservice Decision Support (MDS) context.
+// De CatalogService wordt geïnjecteerd via dependency injection en
+// bevat de logica om de benodigde gegevens op te halen.
 
 using Microsoft.AspNetCore.Mvc;
 using MdsPoc.Application.Services;

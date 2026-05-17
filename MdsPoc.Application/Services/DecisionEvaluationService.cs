@@ -153,8 +153,10 @@ namespace MdsPoc.Application.Services
         // Maar voor nu gaan we ervan uit dat er één criterium is met het hoogste gewicht.
 
         // Als alle alternatieven nog steeds gelijk zijn na deze tie-breaker,
-        // overweeg ik 2 alternatieven als mee te gevenn in de response,
+        // overweeg ik 2 alternatieven als mee te geven in de response,
         // of een random keuze te maken.
+
+        // Meerder diferentiaties tussen alternatieven kunnen ook worden overwogen, bijvoorbeeld kosten of onderhoudbaarheid, afhankelijk van de context van de beslissing.
         private static string BreakTie(
             List<EvaluationResult> tiedResults,
             EvaluateDecisionRequest request)
