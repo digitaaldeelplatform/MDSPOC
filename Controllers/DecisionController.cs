@@ -12,7 +12,7 @@ namespace MdsPoc.Api.Controllers
     {
         // Service die de daadwerkelijke MDS-evaluatie uitvoert.
         private readonly IDecisionEvaluationService _decisionEvaluationService;
-        
+
         // Service die de vaste PoC-catalogus met alternatieven
         // en criteria beschikbaar maakt.
         private readonly CatalogService _catalogService;
@@ -56,31 +56,63 @@ namespace MdsPoc.Api.Controllers
                 .ToList();
 
             // Zet de catalogusselectie om naar een gewone EvaluateDecisionRequest.
-            // Vanaf hier gebruikt het systeem dezelfde evaluatielogica
-            // als bij het handmatige endpoint.
+            var evaluateRequest = CreateEvaluateRequestFromCatalog(
+                request,
+                selectedAlternatives,
+                selectedCriteria);
+
+            // Stuurt het samengestelde evaluatieverzoek naar de service die de MDS-evaluatie uitvoert.
+            var response = _decisionEvaluationService.Evaluate(evaluateRequest);
+
+            if (response.ValidationErrors.Any())
+                return BadRequest(response);
+
+            // NIAA:
+            // Niet-geselecteerde alternatieven worden apart geëvalueerd.
+            // Ze beïnvloeden de gekozen beslissing niet.
+            // Ze worden alleen teruggegeven als awareness-signaal wanneer ze beter scoren.
+            response.NonSelectedBetterAlternatives =
+                CalculateNonSelectedBetterAlternatives(
+                    request,
+                    allAlternatives,
+                    selectedAlternatives,
+                    selectedCriteria,
+                    response);
+
+            return Ok(response);
+        }
+
+        private static EvaluateDecisionRequest CreateEvaluateRequestFromCatalog(
+            EvaluateFromCatalogRequest request,
+            List<AlternativeProfile> alternatives,
+            List<CriterionProfile> criteria)
+        {
             var evaluateRequest = new EvaluateDecisionRequest
             {
                 Context = request.Context,
-                Alternatives = selectedAlternatives.Select(alternative => new AlternativeOption
+
+                Alternatives = alternatives.Select(alternative => new AlternativeOption
                 {
                     Name = alternative.Name,
                     Type = alternative.Type
                 }).ToList(),
-                Criteria = selectedCriteria.Select(criterion => new Criterion
+
+                Criteria = criteria.Select(criterion => new Criterion
                 {
                     Name = criterion.Name,
                     Category = criterion.Category
                 }).ToList(),
+
                 Weights = request.Weights,
                 Assumptions = request.Assumptions
             };
 
-            // Voeg de baseline scores van de geselecteerde alternatieven toe aan het evaluatieverzoek.
-            foreach (var alternative in selectedAlternatives)
+            // Voeg baseline scores toe voor de geselecteerde alternatieven
+            // en alleen voor de geselecteerde criteria.
+            foreach (var alternative in alternatives)
             {
                 foreach (var baselineScore in alternative.BaselineScores)
                 {
-                    // Alleen scores toevoegen voor de geselecteerde criteria. De rest wordt genegeerd
                     if (!request.SelectedCriterionNames.Contains(baselineScore.CriterionName))
                         continue;
 
@@ -93,13 +125,61 @@ namespace MdsPoc.Api.Controllers
                     });
                 }
             }
-            // Stuurt het samengestelde evaluatieverzoek naar de service die de MDS-evaluatie uitvoert.
-            var response = _decisionEvaluationService.Evaluate(evaluateRequest);
 
-            if (response.ValidationErrors.Any())
-                return BadRequest(response);
+            return evaluateRequest;
+        }
 
-            return Ok(response);
+        private List<AlternativeAwarenessResult> CalculateNonSelectedBetterAlternatives(
+            EvaluateFromCatalogRequest originalRequest,
+            List<AlternativeProfile> allAlternatives,
+            List<AlternativeProfile> selectedAlternatives,
+            List<CriterionProfile> selectedCriteria,
+            EvaluateDecisionResponse selectedResponse)
+        {
+            var selectedAlternativeScore = selectedResponse.Results
+                .FirstOrDefault(result => result.AlternativeName == selectedResponse.SelectedAlternative)
+                ?.FinalScore ?? 0;
+
+            var selectedIds = selectedAlternatives
+                .Select(alternative => alternative.Id)
+                .ToHashSet();
+
+            var nonSelectedAlternatives = allAlternatives
+                .Where(alternative => !selectedIds.Contains(alternative.Id))
+                .ToList();
+
+            if (!nonSelectedAlternatives.Any())
+                return new List<AlternativeAwarenessResult>();
+
+            var awarenessRequest = CreateEvaluateRequestFromCatalog(
+                originalRequest,
+                nonSelectedAlternatives,
+                selectedCriteria);
+
+            var awarenessResponse = _decisionEvaluationService.Evaluate(awarenessRequest);
+
+            if (awarenessResponse.ValidationErrors.Any())
+                return new List<AlternativeAwarenessResult>();
+
+            return awarenessResponse.Results
+                .Where(result => result.FinalScore > selectedAlternativeScore)
+                .Select(result =>
+                {
+                    var alternative = nonSelectedAlternatives
+                        .First(alternative => alternative.Name == result.AlternativeName);
+
+                    return new AlternativeAwarenessResult
+                    {
+                        AlternativeName = result.AlternativeName,
+                        AlternativeType = alternative.Type,
+                        FinalScore = result.FinalScore,
+                        DifferenceWithSelected = Math.Round(
+                            result.FinalScore - selectedAlternativeScore,
+                            4)
+                    };
+                })
+                .OrderByDescending(result => result.FinalScore)
+                .ToList();
         }
     }
 }

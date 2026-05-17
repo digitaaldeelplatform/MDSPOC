@@ -410,6 +410,75 @@
             display: none;
         }
 
+        .awareness-card {
+            border-color: var(--border-strong);
+            background: #fff8f0;
+        }
+
+        .awareness-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .awareness-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--orange-dark);
+        }
+
+        .awareness-sub {
+            font-size: 13px;
+            color: var(--text-mid);
+            margin-top: 4px;
+        }
+
+        .awareness-toggle {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--orange-dark);
+            white-space: nowrap;
+        }
+
+        .awareness-list {
+            margin-top: 1rem;
+            display: none;
+        }
+
+            .awareness-list.open {
+                display: block;
+            }
+
+        .awareness-row {
+            display: grid;
+            grid-template-columns: 1fr 90px 90px 120px;
+            gap: 12px;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+            .awareness-row:last-child {
+                border-bottom: none;
+            }
+
+        .awareness-name {
+            font-weight: 700;
+        }
+
+        .awareness-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: var(--orange-light);
+            color: var(--orange-deep);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
         .winner-card {
             background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
             border-radius: 14px;
@@ -721,9 +790,32 @@
             </div>
 
             <div class="card">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                    <div class="card-label" style="margin-bottom:0;">Criteria &amp; gewichten</div>
-                    <span id="weight-badge" class="weight-badge weight-bad">Som: 0.00</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:12px;flex-wrap:wrap;">
+
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="card-label" style="margin-bottom:0;">
+                            Criteria &amp; gewichten
+                        </div>
+
+                        <span id="weight-badge" class="weight-badge weight-bad">
+                            Som: 0.00
+                        </span>
+                    </div>
+
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn-secondary"
+                                type="button"
+                                onclick="selectAllCriteria()">
+                            Select all
+                        </button>
+
+                        <button class="btn-secondary"
+                                type="button"
+                                onclick="deselectAllCriteria()">
+                            Deselect all
+                        </button>
+                    </div>
+
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -1109,16 +1201,24 @@
 
         function buildScoresFromCatalog(selectedAlternatives, selectedCriteria) {
             const scores = [];
+
             selectedAlternatives.forEach(alternative => {
                 selectedCriteria.forEach(criterion => {
-                    scores.push({
-                        alternativeName: alternative.name,
-                        criterionName: criterion.name,
-                        score: 0.7,
-                        uncertainty: 0.1
-                    });
+                    const baselineScore = alternative.baselineScores?.find(s =>
+                        s.criterionName === criterion.name
+                    );
+
+                    if (baselineScore) {
+                        scores.push({
+                            alternativeName: alternative.name,
+                            criterionName: criterion.name,
+                            score: baselineScore.score,
+                            uncertainty: baselineScore.uncertainty ?? 0
+                        });
+                    }
                 });
             });
+
             return scores;
         }
 
@@ -1148,7 +1248,7 @@
             }
 
             btn.disabled = false;
-            btn.innerHTML = 'Herevalueer';
+            btn.innerHTML = 'Simuleer wijziging';
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -1195,7 +1295,7 @@
                     <!-- Visuele scheiding tussen originele en herevaluatie -->
                     <div class="reeval-divider">
                         <div class="reeval-divider-line"></div>
-                        <div class="reeval-divider-label">↓ Herevaluatie resultaat</div>
+                        <div class="reeval-divider-label">↓ Resultaat na externe wijziging</div>
                         <div class="reeval-divider-line"></div>
                     </div>
 
@@ -1205,8 +1305,8 @@
                         <div>
                             <div class="reeval-banner-title">
                                 ${decisionChanged
-                    ? 'Beslissing gewijzigd na herevaluatie'
-                    : 'Herevaluatie uitgevoerd — beslissing ongewijzigd'}
+                    ? 'Beslissing gewijzigd na externe wijziging'
+                    : 'Nieuwe evaluatie uitgevoerd — beslissing ongewijzigd'}
                             </div>
                             <div class="reeval-banner-body">
                                 ${decisionChanged
@@ -1227,7 +1327,7 @@
                     <!-- Nieuwe winner card in donkerder oranje tint -->
                     <div class="reeval-winner-card">
                         <div>
-                            <div class="winner-label">Aanbevolen alternatief na herevaluatie</div>
+                            <div class="winner-label">Aanbevolen alternatief na wijziging</div>
                             <div class="winner-name">${newData.selectedAlternative}</div>
                             <div class="winner-meta">
                                 Final score ${winnerScore.toFixed(3)}
@@ -1250,7 +1350,7 @@
 
                     <!-- Scorevergelijking -->
                     <div class="card">
-                        <div class="card-label">Scorevergelijking (na herevaluatie)</div>
+                        <div class="card-label">Scorevergelijking na wijziging</div>
                 `;
 
             [...newData.results]
@@ -1277,7 +1377,7 @@
             // Details tabel
             html += `
                     <div class="card">
-                        <div class="card-label">Details (na herevaluatie)</div>
+                        <div class="card-label">Details na wijziging</div>
                         <div class="table-wrap">
                             <table>
                                 <thead>
@@ -1315,6 +1415,126 @@
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        function renderAlternativeAwareness(data) {
+            const suggestions = data.nonSelectedBetterAlternatives || [];
+
+            if (!suggestions.length) {
+                return '';
+            }
+
+            const count = suggestions.length;
+
+            return `
+        <div class="card awareness-card">
+            <div class="awareness-header" onclick="toggleAlternativeAwareness()">
+                <div>
+                    <div class="awareness-title">
+                        Niet-geselecteerde alternatieven gevonden
+                    </div>
+                    <div class="awareness-sub">
+                        ${count} alternatief${count === 1 ? '' : 'en'} scor${count === 1 ? 't' : 'en'}
+                        hoger op de gekozen criteria, maar ${count === 1 ? 'is' : 'zijn'}
+                        niet meegenomen in de beslissing.
+                    </div>
+                </div>
+                <div class="awareness-toggle" id="awareness-toggle-text">
+                    Toon alternatieven
+                </div>
+            </div>
+
+            <div class="awareness-list" id="awareness-list">
+                <div class="awareness-row" style="font-weight:700;color:var(--text-light);">
+                    <div>Alternatief</div>
+                    <div>Type</div>
+                    <div>Score</div>
+                    <div>Verschil</div>
+                </div>
+
+                ${suggestions.map(item => `
+                    <div class="awareness-row">
+                        <div class="awareness-name">${item.alternativeName}</div>
+                        <div>
+                            <span class="awareness-type">${item.alternativeType}</span>
+                        </div>
+                        <div>${item.finalScore.toFixed(4)}</div>
+                        <div>+${item.differenceWithSelected.toFixed(4)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+        }
+
+        function toggleAlternativeAwareness() {
+            const list = document.getElementById('awareness-list');
+            const toggleText = document.getElementById('awareness-toggle-text');
+
+            if (!list || !toggleText) return;
+
+            const isOpen = list.classList.toggle('open');
+            toggleText.textContent = isOpen ? 'Verberg alternatieven' : 'Toon alternatieven';
+        }
+
+        function renderAlternativeAwareness(data) {
+    const suggestions = data.nonSelectedBetterAlternatives || [];
+
+    if (!suggestions.length) {
+        return '';
+    }
+
+    const count = suggestions.length;
+
+    return `
+        <div class="card awareness-card">
+            <div class="awareness-header" onclick="toggleAlternativeAwareness()">
+                <div>
+                    <div class="awareness-title">
+                        Niet-geselecteerde alternatieven gevonden
+                    </div>
+                    <div class="awareness-sub">
+                        ${count} alternatief${count === 1 ? '' : 'en'} scor${count === 1 ? 't' : 'en'}
+                        hoger op de gekozen criteria, maar ${count === 1 ? 'is' : 'zijn'}
+                        niet meegenomen in de beslissing.
+                    </div>
+                </div>
+                <div class="awareness-toggle" id="awareness-toggle-text">
+                    Toon alternatieven
+                </div>
+            </div>
+
+            <div class="awareness-list" id="awareness-list">
+                <div class="awareness-row" style="font-weight:700;color:var(--text-light);">
+                    <div>Alternatief</div>
+                    <div>Type</div>
+                    <div>Score</div>
+                    <div>Verschil</div>
+                </div>
+
+                ${suggestions.map(item => `
+                    <div class="awareness-row">
+                        <div class="awareness-name">${item.alternativeName}</div>
+                        <div>
+                            <span class="awareness-type">${item.alternativeType}</span>
+                        </div>
+                        <div>${item.finalScore.toFixed(4)}</div>
+                        <div>+${item.differenceWithSelected.toFixed(4)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function toggleAlternativeAwareness() {
+    const list = document.getElementById('awareness-list');
+    const toggleText = document.getElementById('awareness-toggle-text');
+
+    if (!list || !toggleText) return;
+
+    const isOpen = list.classList.toggle('open');
+    toggleText.textContent = isOpen ? 'Verberg alternatieven' : 'Toon alternatieven';
+}
+
         function renderResult(data) {
             const container = document.getElementById('result-main');
             const winner = data.results.find(r => r.alternativeName === data.selectedAlternative);
@@ -1350,6 +1570,8 @@
                         </svg>
                     </div>
                 `;
+
+            html += renderAlternativeAwareness(data);
 
             html += `<div class="card"><div class="card-label">Scorevergelijking</div>`;
 
@@ -1411,11 +1633,12 @@
             // Herevaluatie simulatie sectie
             html += `
                     <div class="card">
-                        <div class="card-label">Herevaluatie simuleren</div>
+                        <div class="card-label">Simuleer externe wijziging</div>
 
                         <p style="font-size:13px;color:var(--text-light);margin-bottom:1rem;">
-                            Geef een feedbacksignaal op. De backend berekent automatisch de temperatuur
-                            en bepaalt of herevaluatie nodig is.
+                           Simuleer een extern feedbacksignaal, zoals runtime monitoring,
+                            vendorwijzigingen of gewijzigde kosten. De MDS-methode voert
+                            daarna een nieuwe evaluatie uit op basis van de gewijzigde situatie.
                         </p>
 
                         <div class="form-grid">
@@ -1466,7 +1689,7 @@
                         </div>
 
                         <div class="actions-row">
-                            <button class="btn-primary" id="btn-reeval" onclick="runReEvaluation()">Herevalueer</button>
+                            <button class="btn-primary" id="btn-reeval" onclick="runReEvaluation()">Simuleer wijziging</button>
                         </div>
 
                         <!-- Herevaluatie uitkomst wordt hier ingevuld -->
@@ -1475,6 +1698,16 @@
                 `;
 
             container.innerHTML = html;
+        }
+
+        function selectAllCriteria() {
+            criteria.forEach(c => c.selected = true);
+            renderCriteria();
+        }
+
+        function deselectAllCriteria() {
+            criteria.forEach(c => c.selected = false);
+            renderCriteria();
         }
 
         function showBanner(message) {

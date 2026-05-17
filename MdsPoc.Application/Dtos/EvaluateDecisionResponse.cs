@@ -15,5 +15,7 @@ namespace MdsPoc.Application.Dtos
         public string SelectedAlternative { get; set; } = string.Empty;
         public List<EvaluationResult> Results { get; set; } = new List<EvaluationResult>();
         public List<string> ValidationErrors { get; set; } = new List<string>();
+        public List<AlternativeAwarenessResult> NonSelectedBetterAlternatives { get; set; } = new();
+
     }
 }
