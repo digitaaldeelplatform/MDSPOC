@@ -1,105 +1,241 @@
-# Microservice Decision Support (MDS) – Proof of Concept
+# Microservice Decision Support (MDS) — Proof of Concept
 
-## Overview
-
-This project is a Proof-of-Concept (PoC) for a **Microservice Decision Support (MDS)** method. The goal of MDS is to support architects and developers in making structured decisions between:
-
-- **Build**
-- **Buy**
-- **Free / Open Source**
-
-The system makes these decisions **explicit, reproducible, and explainable** by evaluating alternatives using a multi-criteria model.
+> Een gestructureerde, uitlegbare methode voor build–buy–free beslissingen in microservice-architecturen.
 
 ---
 
-## Problem
+## Inhoudsopgave
 
-In microservice-based systems, decisions such as build vs. buy are often:
-
-- Implicit and undocumented
-- Context-dependent
-- Difficult to reproduce
-- Hard to re-evaluate when circumstances change
-
-This PoC addresses that gap by formalizing decision-making into a structured evaluation process.
-
----
-
-## Core Concept
-
-The MDS method evaluates alternatives using:
-
-- **Criteria** — e.g., Time, Cost, Maintainability
-- **Weights** — importance of each criterion (sum = 1.0)
-- **Scores** — per alternative, per criterion
-- **Uncertainty** — confidence in each score
+- [Overzicht](#overzicht)
+- [Probleemstelling](#probleemstelling)
+- [Kernmethode](#kernmethode)
+- [Features](#features)
+- [Architectuur](#architectuur)
+- [API Referentie](#api-referentie)
+- [Voorbeeld Request & Response](#voorbeeld-request--response)
+- [Installatie & Uitvoeren](#installatie--uitvoeren)
+- [Technologiestack](#technologiestack)
+- [Projectstructuur](#projectstructuur)
+- [Projectstatus](#projectstatus)
+- [Context](#context)
+- [Auteur](#auteur)
 
 ---
 
-## Key Features
+## Overzicht
 
-### 1. Multi-Criteria Evaluation
+Dit project is een Proof-of-Concept voor de **Microservice Decision Support (MDS)** methode. MDS helpt architecten en ontwikkelaars bij het nemen van gestructureerde, reproduceerbare en uitlegbare beslissingen over de inkoop of ontwikkeling van microservice-componenten:
 
-Each alternative is scored using a weighted model:
-
-- Scores are normalized based on available data
-- Final score = weighted score × correction factor
-
-### 2. Handling Missing Criteria
-
-The system explicitly supports incomplete data:
-
-- Missing criteria are **not imputed**
-- Coverage is calculated based on available information
-- A **non-linear penalty** is applied based on missing weight
-
-| Missing Criterion Weight | Penalty |
+| Optie | Beschrijving |
 |---|---|
-| High | Strong penalty |
-| Low | Mild penalty |
+| **Build** | Zelf ontwikkelen |
+| **Buy** | Commercieel product aanschaffen |
+| **Free / OSS** | Open-source oplossing adopteren |
 
-This ensures fair and transparent comparison between alternatives.
+De evaluatie is gebaseerd op een gewogen multi-criteria model met expliciete ondersteuning voor ontbrekende data, onzekerheid en her-evaluatie op basis van runtime feedback.
 
-### 3. Uncertainty-Aware Scoring
+---
 
-Each score includes an uncertainty factor:
+## Probleemstelling
+
+In microservice-gebaseerde systemen worden beslissingen zoals build vs. buy vaak:
+
+- Impliciet genomen en niet gedocumenteerd
+- Sterk afhankelijk van context die later verandert
+- Moeilijk te reproduceren of te reviseren
+- Niet traceerbaar naar de onderbouwing
+
+De MDS-methode formaliseert dit proces zodat beslissingen transparant, herhaalbaar en auditeerbaar worden.
+
+---
+
+## Kernmethode
+
+Een beslissing wordt gemodelleerd als een evaluatie van **alternatieven** over een set **criteria**:
 
 ```
-adjustedScore = score × (1 - uncertainty)
+finalScore = Σ (gewicht_i × score_i × (1 - onzekerheid_i)) × correctiefactor
 ```
 
-Higher uncertainty reduces the influence of a criterion.
-
-### 4. Explainable Output
-
-For each alternative, the system returns:
-
-| Field | Description |
+| Component | Beschrijving |
 |---|---|
-| `finalScore` | The final weighted score |
-| `normalizedScore` | Score normalized across available criteria |
-| `coverage` | Fraction of criteria with data |
-| `missingCriteria` | List of criteria without a score |
-| `missingWeight` | Total weight of missing criteria |
-| `correctionFactor` | Penalty applied for missing data |
-
-This allows users to understand **why** a decision was made.
+| **Criteria** | Evaluatiedimensies (bijv. Tijd, Kosten, Onderhoudbaarheid) |
+| **Gewichten** | Relatief belang per criterium (som = 1.0) |
+| **Scores** | Beoordeling per alternatief per criterium (0–1) |
+| **Onzekerheid** | Betrouwbaarheidsgraad van een score (0 = zeker, 1 = volledig onzeker) |
+| **Correctiefactor** | Niet-lineaire straf voor ontbrekende criteria |
 
 ---
 
-## Example Output
+## Features
+
+### Multi-criteria evaluatie
+
+Elk alternatief wordt gescoord over alle beschikbare criteria. Scores worden genormaliseerd op basis van aanwezige data. De eindscore combineert gewogen scores met een correctie voor dekking.
+
+### Omgaan met ontbrekende criteria
+
+Ontbrekende data wordt niet geïmputeerd — in plaats daarvan:
+
+- Wordt de **dekking** (coverage) berekend op basis van aanwezige informatie
+- Wordt een **niet-lineaire straf** toegepast op basis van het totale gewicht van ontbrekende criteria
+
+| Gewicht ontbrekend criterium | Straf |
+|---|---|
+| Hoog | Zwaar |
+| Laag | Licht |
+
+Dit zorgt voor een eerlijke vergelijking tussen alternatieven met incomplete data.
+
+### Onzekerheidsgewogen scoring
+
+Elke score bevat een onzekerheidsfactor:
+
+```
+aangepastScore = score × (1 - onzekerheid)
+```
+
+Hoge onzekerheid vermindert de invloed van een criterium op de eindscore.
+
+### Her-evaluatie via runtime feedback
+
+Via de `ReEvaluationService` kunnen eerder genomen beslissingen opnieuw worden geëvalueerd wanneer omstandigheden veranderen — bijvoorbeeld als een score inmiddels bijgesteld moet worden op basis van ervaringen in productie.
+
+### Temperatuurservice (beslisvertrouwen)
+
+De `TemperatureService` berekent een indicatie van het vertrouwen in een beslissing op basis van de spreiding van scores, dekking en onzekerheid. Dit geeft een kwalitatieve duiding naast de kwantitatieve eindscore.
+
+### Catalogusondersteuning
+
+De `CatalogService` biedt de mogelijkheid om alternatieven op te halen uit een vooraf gedefinieerde catalogus, zodat hergebruik van bekende oplossingen eenvoudig is.
+
+### Explainability
+
+Voor elk alternatief geeft het systeem een volledig inzichtelijke breakdown:
+
+| Veld | Beschrijving |
+|---|---|
+| `finalScore` | Gewogen eindscore inclusief correctie |
+| `normalizedScore` | Score genormaliseerd over beschikbare criteria |
+| `coverage` | Fractie criteria waarvoor data beschikbaar is |
+| `missingCriteria` | Lijst van criteria zonder score |
+| `missingWeight` | Totaalgewicht van ontbrekende criteria |
+| `correctionFactor` | Toegepaste straf voor incomplete data |
+
+---
+
+## Architectuur
+
+Het project gebruikt een gelaagde Clean Architecture-opzet:
+
+```
+MDSPOC (ASP.NET Core Web API)
+├── Controllers/          ← HTTP endpoints
+├── MdsPoc.Api/           ← Request/Response DTOs
+├── MdsPoc.Application/   ← Business logic, services, interfaces
+│   ├── Services/
+│   │   ├── DecisionEvaluationService
+│   │   ├── ReEvaluationService
+│   │   ├── TemperatureService
+│   │   └── CatalogService
+│   └── Interfaces/
+├── MdsPoc.Domain/        ← Core domeinmodellen
+│   └── (Alternatives, Criteria, Scores, Weights, ...)
+├── MdsPoc.Tests/         ← Unit tests
+└── wwwroot/              ← Statische frontend assets
+```
+
+| Laag | Verantwoordelijkheid |
+|---|---|
+| **Controllers** | HTTP routing, validatie van requests |
+| **Application** | Beslislogica, evaluatie-algoritmen, orkestratie |
+| **Domain** | Pure domeinmodellen zonder externe afhankelijkheden |
+| **Tests** | Geautomatiseerde validatie van het evaluatiemodel |
+
+---
+
+## API Referentie
+
+### `POST /api/decision/evaluate`
+
+Evalueert een set alternatieven op basis van criteria, gewichten en scores.
+
+**Request body:**
+
+```json
+{
+  "criteria": [
+    { "name": "Cost", "weight": 0.4 },
+    { "name": "Maintainability", "weight": 0.35 },
+    { "name": "Time", "weight": 0.25 }
+  ],
+  "alternatives": [
+    {
+      "name": "Build",
+      "scores": [
+        { "criterionName": "Cost", "score": 0.3, "uncertainty": 0.1 },
+        { "criterionName": "Maintainability", "score": 0.8, "uncertainty": 0.05 }
+      ]
+    },
+    {
+      "name": "Buy",
+      "scores": [
+        { "criterionName": "Cost", "score": 0.6, "uncertainty": 0.15 },
+        { "criterionName": "Maintainability", "score": 0.5, "uncertainty": 0.2 },
+        { "criterionName": "Time", "score": 0.9, "uncertainty": 0.05 }
+      ]
+    },
+    {
+      "name": "Free",
+      "scores": [
+        { "criterionName": "Cost", "score": 0.95, "uncertainty": 0.05 },
+        { "criterionName": "Maintainability", "score": 0.4, "uncertainty": 0.3 },
+        { "criterionName": "Time", "score": 0.7, "uncertainty": 0.1 }
+      ]
+    }
+  ]
+}
+```
+
+### `POST /api/decision/re-evaluate`
+
+Her-evaluatie van een bestaande beslissing op basis van bijgewerkte scores of gewijzigde gewichten.
+
+---
+
+## Voorbeeld Request & Response
+
+**Response:**
 
 ```json
 {
   "selectedAlternative": "Free",
   "results": [
     {
+      "alternativeName": "Free",
+      "finalScore": 0.6812,
+      "normalizedScore": 0.71,
+      "coverage": 1.0,
+      "missingCriteria": [],
+      "missingWeight": 0.0,
+      "correctionFactor": 1.0
+    },
+    {
       "alternativeName": "Buy",
+      "finalScore": 0.5934,
+      "normalizedScore": 0.61,
+      "coverage": 1.0,
+      "missingCriteria": [],
+      "missingWeight": 0.0,
+      "correctionFactor": 1.0
+    },
+    {
+      "alternativeName": "Build",
       "finalScore": 0.4536,
-      "coverage": 0.6,
-      "missingCriteria": ["Time"],
       "normalizedScore": 0.54,
-      "missingWeight": 0.4,
+      "coverage": 0.75,
+      "missingCriteria": ["Time"],
+      "missingWeight": 0.25,
       "correctionFactor": 0.84
     }
   ]
@@ -108,63 +244,107 @@ This allows users to understand **why** a decision was made.
 
 ---
 
-## Architecture
+## Installatie & Uitvoeren
 
-The project follows a layered architecture:
+### Vereisten
 
-| Layer | Description |
-|---|---|
-| **API** (`MDSPOC`) | ASP.NET Core Web API exposing decision endpoints |
-| **Application** | Business logic and evaluation engine |
-| **Domain** | Core models (Alternatives, Criteria, Scores, etc.) |
-| **Tests** | Unit tests validating decision logic |
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- Visual Studio 2022+ of een andere C#-IDE (bijv. Rider, VS Code)
 
-### API — Evaluate Decision
+### Stappen
 
-```http
-POST /api/decision/evaluate
+```bash
+# 1. Clone de repository
+git clone https://github.com/digitaaldeelplatform/MDSPOC.git
+cd MDSPOC
+
+# 2. Herstel dependencies
+dotnet restore
+
+# 3. Start de applicatie
+dotnet run --project MDSPOC.csproj
 ```
 
-Evaluates alternatives based on criteria, weights, and scores.
+Of open `MDSPOC.sln` in Visual Studio, stel `MDSPOC` in als startup project, en druk op **F5**.
+
+### Swagger UI
+
+Na het starten is de Swagger UI bereikbaar op:
+
+```
+https://localhost:{poort}/swagger
+```
+
+Gebruik `/api/decision/evaluate` om scenario's te testen.
 
 ---
 
-## Running the Project
+## Technologiestack
 
-1. Open the solution in Visual Studio
-2. Set `MDSPOC` as the startup project
-3. Run the application
-4. Open Swagger UI
-5. Use `/api/decision/evaluate` to test scenarios
+| Component | Technologie |
+|---|---|
+| Framework | ASP.NET Core 8.0 |
+| API Documentatie | Swashbuckle / Swagger (v6.6.2) |
+| Taal | C# (.NET 8, Nullable enabled) |
+| Testen | xUnit / MSTest (MdsPoc.Tests) |
+| Frontend assets | Statische HTML/JS in `wwwroot/` |
 
 ---
 
-## Project Status
+## Projectstructuur
 
-This PoC demonstrates:
+```
+MDSPOC/
+├── Controllers/                  ← API controllers
+├── MdsPoc.Api/                   ← DTO's en request/response modellen
+├── MdsPoc.Application/           ← Services en interfaces
+├── MdsPoc.Domain/                ← Domeinentiteiten
+├── MdsPoc.Tests/                 ← Unit tests
+├── Properties/                   ← Launch settings
+├── wwwroot/                      ← Statische bestanden
+├── Program.cs                    ← App entry point & DI registratie
+├── appsettings.json
+├── MDSPOC.csproj
+└── MDSPOC.sln
+```
 
-- A working decision model
-- Support for incomplete data
-- Deterministic and reproducible evaluation
-- Explainable decision output
+---
 
-**Future work includes:**
+## Projectstatus
 
-- Re-evaluation based on runtime feedback
-- Decision tracking and history
-- Frontend visualization of decisions
+**Geïmplementeerd:**
+- Werkend multi-criteria evaluatiemodel
+- Ondersteuning voor incomplete data (niet-lineaire correctie)
+- Onzekerheidsgewogen scoring
+- Her-evaluatie service (`ReEvaluationService`)
+- Beslisvertrouwen indicator (`TemperatureService`)
+- Catalogusondersteuning (`CatalogService`)
+- Deterministische en reproduceerbare evaluatie
+- Volledige explainability per alternatief
+- Swagger UI voor interactief testen
+
+**Toekomstig werk:**
+- Beslissingsgeschiedenis en -tracking
+- Persistentie van beslissingen (database)
+- Frontend visualisatie van beslissingen en scores
+- Koppeling met externe catalogusdatabases
+- Authenticatie en autorisatie
 
 ---
 
 ## Context
 
-This project is part of a graduation research focused on:
+Dit project maakt deel uit van afstudeeronderzoek gericht op:
 
-> Designing a decision support method for microservice architecture choices (build–buy–free), including uncertainty handling and adaptive re-evaluation.
+> Het ontwerpen van een beslissingsondersteuningsmethod voor microservice-architectuurkeuzes (build–buy–free), inclusief het afhandelen van onzekerheid en adaptieve her-evaluatie op basis van runtime feedback.
 
 ---
 
-## Author
+## Auteur
 
 **Roland**  
-HBO-ICT Software Engineering – Fontys
+HBO-ICT Software Engineering – Fontys Hogescholen
+
+---
+
+*Gebouwd met ASP.NET Core 8 · Proof of Concept · 2024–2025*
