@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MdsPoc.Application.Dtos;
 using MdsPoc.Application.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 
 namespace MDSPOC.Controllers
 {

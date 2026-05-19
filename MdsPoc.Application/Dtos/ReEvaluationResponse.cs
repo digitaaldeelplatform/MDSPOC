@@ -31,5 +31,7 @@ namespace MdsPoc.Application.Dtos
         public string Explanation { get; set; } = string.Empty;
 
         public EvaluateDecisionResponse? NewEvaluation { get; set; }
+
+        public List<AlternativeAwarenessResult> NonSelectedBetterAlternatives { get; set; } = new();
     }
 }
